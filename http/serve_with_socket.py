@@ -1,43 +1,97 @@
+# python 3.7
+# multithread server
+
+#------------------------
 import socket
+import sys
 
+# importing the threading module
+from _thread import *
+import threading
+# -------------------
 
-HOST = '127.0.0.1'
-PORT = 6453
+# define thread object
+lockThread = threading.Lock()
+#--------------------
 
-def createServer():
+def multipleConnection(clientSocket, address):
 
-    # create an server socket object
-    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # binding the object to the address
-    serverSocket.bind((HOST, PORT))
-
-    # listening to the connection request with blocking
-    serverSocket.listen(5)
-    print(f'Server: {HOST}'.center(50, '-'))
-
-    # Establishing  connection --------
-
-    # accepting the connection request
-    # returning a client socket object
-    (clientSocket, address) = serverSocket.accept()
-    print(f'Connection from: {address}')
-    #-------------------------
-
-    # Receiving data------------
+    # transfering the data and retreiving it
     while True:
-        # data received is in utf8 and need to be decode to string
-        data = clientSocket.recv(1024).decode()
-        # checking if all data has been transfered
-        if len(data) < 1:
-            break
-        print(f'From connected user: {data}')
+        try:
+            response = clientSocket.recv(1024).decode('utf-8')
 
-        data = input('->')
-        clientSocket.sendall(data.encode())
+            # check if data there is response or not
+            if not response:
+                listOfClients.remove(clientSocket)
+                lockThread.release()
+                break
+
+            else:
+                message = f'From {address[0]: {response}}'
+                broadcast(clientSocket, message)
+
+        except:
+            continue
 
     clientSocket.close()
-    print('Server Closed'.center(50, '-'))
+    print('client went OFFLINE'.center(50, '-'))
+
+    def broadcastMessage(connection, msg):
+        # loop through list of client in room and send message to everyone
+        for client in listOfClients:
+            if connection != client:
+                try:
+                    client.sendall(msg.encode('utf-8'))
+                except:
+                    client.close()
+                    remove(client)
+
+    def removeClient(c):
+        if client in listOfClients:
+            listOfClients.remove(c)
+# ---------------------------------------------------
+
+
+listOfClients = list()
+
+
+def createServer():
+    # host and port address of the server
+    host = '127.0.0.1'
+    port = 6453
+
+    # creating a server side socket
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # bind the server socket with the given address
+    try:
+        serverSocket.bind((host, port))
+    except socket.error as e:
+        print(f'Unable to find the socket with address Error: {e}')
+        sys.exit()
+
+    # server listening for connection with maximum hold of 5
+    serverSocket.listen(5)
+    print('Chatroom Acitvated'.center(50, '-'))
+
+    while True:
+        # accepting connection
+        (connectionSocket, address) = serverSocket.accept()
+        # append the client in list of client
+        listOfClients.append(connectionSocket)
+
+        print(f'\nJoin the meeting: {address[0]}')
+
+        # acquire thread lock
+        lockThread.acquire()
+
+        # pass the connection to the
+        start_new_thread(multipleConnection, (connectionSocket, address))
+
+    serverSocket.close()
+# ---------------------------------------------------
 
 
 if __name__ == '__main__':

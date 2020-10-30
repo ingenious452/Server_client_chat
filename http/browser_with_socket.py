@@ -1,33 +1,34 @@
-import socket
+# python 3.7
+# client side socket
 
-# Name of Host and Port to connect to ->
-HOST = '127.0.0.1'
-PORT = 6453
+import socket
+import select
+import sys
 
 
 def createClient():
-    # creating a client socket
+    host = '127.0.0.1'
+    port = 6453
+
+    # create client socket
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # connecting to the server
-    clientSocket.connect((HOST, PORT))
-    print('Client Active'.center(20, '-'))
+    # connect to the server
+    clientSocket.connect((host, port))
 
-    message = input('->')
+    # recieve message from the server
+    message = input(' -> ')
 
-    # Receiving the Data
+    # Transfer and Recieve data
     while message != 'q':
-        # Sending Data over the network
-        clientSocket.sendall(message.encode())
-
-        # Receiving the data over network
-        data = clientSocket.recv(1024).decode()
-
-        print(f'From connected server: {data}')
-        message = input('->')
+        if sock == clientSocket:
+            message = clientSocket.recv(1024).decode('utf-8')
+            print(message)
+        else:
+            message = input('  ->  ')
+            clientSocket.sendall(message)
 
     clientSocket.close()
-    print('Client Closed'.center(20, '-'))
 
 
 if __name__ == '__main__':
